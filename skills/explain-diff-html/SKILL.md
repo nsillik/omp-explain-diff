@@ -33,6 +33,43 @@ If invoked as a skill directly with **no pre-created output file**:
 
 Always also explore the surrounding code — changed files, imports/callers, related tests. The Background section requires it, not just the diff text.
 
+## Diffstat
+
+Every page header shows a diffstat — total lines added, lines removed, files changed — and tapping it expands a per-file breakdown. Compute it from the SAME diff used for the target; never invent numbers.
+
+Totals: run the shortstat command matching the resolved target:
+
+- No args: `git diff --shortstat HEAD`
+- `#N` PR: `gh pr view N --json additions,deletions,changedFiles` (fallback: `git diff --shortstat <default-branch>...<N-branch>`)
+- Branch: `git diff --shortstat <default-branch>...<branch>`
+- `a..b` / `a...b`: `git diff --shortstat <range>`
+- File path: `git diff --shortstat HEAD -- <path>`
+- Anything else: `git diff --shortstat <arg>`; on error, report and stop.
+
+`git diff --shortstat` prints `N files changed, X insertions(+), Y deletions(-)`, omitting a part when it is zero; if it prints nothing (no changes), all three numbers are 0.
+
+Per-file rows: run the numstat command for the same target (`--numstat` in place of `--shortstat`; for a `#N` PR use `gh pr view N --json files`, reading `path`/`additions`/`deletions`). Each numstat line is `added<TAB>deleted<TAB>path`; a `-` column means the file is binary — write the file's size in bytes in the `.file-add` span (human-readable with a unit, e.g. `2.3 KB`) and the word `binary` in the `.file-del` span. Get the size with `wc -c <path>` for a local/working-tree target, or `git cat-file -s <rev>:<path>` for a branch/PR/range target. An empty numstat output means no rows.
+
+Replace `PLACEHOLDER_DIFFSTAT` with exactly this structure (X, Y, N are the totals; one `<li>` per file; ASCII `-`, no thousands separators, `file` when N is 1, `files` otherwise; rows listed in numstat order):
+
+```html
+<details class="diffstat">
+  <summary>
+    <span class="stat-add">+X</span>
+    <span class="stat-del">-Y</span>
+    <span class="stat-files">N files</span>
+    <span class="diffstat-toggle"></span>
+  </summary>
+  <ul class="diffstat-files">
+    <li><code class="file-name">path/one.ex</code><span class="file-add">+40</span><span class="file-del">-5</span></li>
+    <li><code class="file-name">path/two.ex</code><span class="file-add">+12</span><span class="file-del">-2</span></li>
+    <li><code class="file-name">assets/logo.png</code><span class="file-add">2.3 KB</span><span class="file-del">binary</span></li>
+  </ul>
+</details>
+```
+
+When there are no changes, keep the structure with `+0`, `-0`, `0 files`, and an empty `<ul class="diffstat-files"></ul>`.
+
 ## Editing rules
 
 - Edit the pre-created file **in place** with the edit tool. Never create a new file, never rewrite or restyle the CSS/JS, never add classes or markup outside the marked content slots.
@@ -40,6 +77,7 @@ Always also explore the surrounding code — changed files, imports/callers, rel
   - `PLACEHOLDER_TITLE` — appears **twice**, in `<title>` and the header `<h1>`; replace **both**.
   - `PLACEHOLDER_SUBTITLE`
   - `PLACEHOLDER_TARGET`
+  - `PLACEHOLDER_DIFFSTAT`
   - `PLACEHOLDER_BACKGROUND`
   - `PLACEHOLDER_INTUITION`
   - `PLACEHOLDER_CODE`
@@ -94,5 +132,6 @@ If a validator command was given in the task prompt, run it and fix every failur
 - 4 sections with ids `background`, `intuition`, `code`, `quiz`.
 - Exactly 5 quiz questions, each with exactly one `data-correct="true"` and feedback.
 - Tags balanced.
+- A `<details class="diffstat">` in the header: summary with `+N` / `-N` / `N files`, and a `.diffstat-files` list with one row per file.
 
 Report the final absolute file path when done.

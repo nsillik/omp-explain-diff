@@ -112,6 +112,54 @@
     margin: 0;
   }
 
+  /* Diffstat (tap to expand per-file breakdown) */
+  .diffstat {
+    margin: 0.55rem 0 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.85rem;
+  }
+  .diffstat summary {
+    display: flex;
+    align-items: baseline;
+    gap: 0.55rem;
+    cursor: pointer;
+    list-style: none;
+  }
+  .diffstat summary::-webkit-details-marker { display: none; }
+  .stat-add, .stat-del {
+    padding: 0.05em 0.55em;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .stat-add { color: var(--ok-border); background: var(--ok-bg); }
+  .stat-del { color: var(--bad-border); background: var(--bad-bg); }
+  .stat-files { color: var(--muted); }
+  .diffstat-toggle {
+    margin-left: auto;
+    color: var(--accent);
+    font-size: 0.8em;
+    white-space: nowrap;
+  }
+  .diffstat-toggle::before { content: "▼ per-file"; }
+  .diffstat[open] .diffstat-toggle::before { content: "▲ per-file"; }
+  .diffstat-files {
+    margin: 0.55rem 0 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--border);
+  }
+  .diffstat-files li {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0.3rem 0;
+    border-bottom: 1px dotted var(--border);
+    font-size: 0.82rem;
+  }
+  .diffstat-files .file-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .diffstat-files .file-add { color: var(--ok-border); }
+  .diffstat-files .file-del { color: var(--bad-border); }
+
   #toc {
     margin: 1.2rem 0 0.4rem;
     padding: 0.8rem 1rem;
@@ -345,6 +393,7 @@
     <h1>PLACEHOLDER_TITLE</h1>
     <p class="subtitle">PLACEHOLDER_SUBTITLE</p>
     <p class="meta">PLACEHOLDER_DATE · PLACEHOLDER_TARGET</p>
+    PLACEHOLDER_DIFFSTAT
   </header>
 
   <nav id="toc" aria-label="Table of contents"></nav>
