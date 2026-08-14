@@ -20,7 +20,7 @@ Dropping the repo into `~/.omp/agent/extensions/` loads the command but **not** 
 
 | Command | Explains |
 |---|---|
-| `/explain-diff-html` | uncommitted working-tree changes |
+| `/explain-diff-html` | asks which change to explain: uncommitted, commit, PR, or commit vs base |
 | `/explain-diff-html <branch>` | branch vs default branch |
 | `/explain-diff-html #123` | GitHub PR #123 |
 | `/explain-diff-html a..b` | commit range |

@@ -24,11 +24,15 @@ If invoked as a skill directly with **no pre-created output file**:
 
 ## Target resolution
 
-- **No args** — uncommitted working tree vs HEAD: `git diff HEAD`, `git status --short`, `git diff --stat HEAD`.
+The command's task prompt always includes a `Target: <value>` line; match the rules below against that value (they also cover direct skill invocation with an explicit arg). When the skill is invoked directly with **no** target, first ask the user which change to explain — offering the same menu the command offers: Uncommitted changes, A specific commit, A specific PR (GitHub PR #), A specific commit vs a base revision, or Other (free text) — via the `ask` tool, gathering the specific input for the chosen kind, then apply the matching rule; if the user declines, stop.
+
+- **`uncommitted working-tree changes`** (the command's menu label for it) — uncommitted working tree vs HEAD: `git diff HEAD`, `git status --short`, `git diff --stat HEAD`.
 - **`#N` or all-digits** — GitHub PR: `gh pr diff N` + `gh pr view N`. If `gh` is unavailable, fall back to `git diff <default-branch>...<N-branch>`.
 - **Branch name** — `git diff <default-branch>...<branch>` (three-dot = merge-base semantics). Default branch = `git symbolic-ref --short refs/remotes/origin/HEAD`, falling back to `main`, then `master`.
 - **`a..b` / `a...b`** — `git diff <range>`.
 - **Existing file path** — `git diff HEAD -- <path>`.
+- **`commit <sha>`** — the changes introduced by one commit: `git diff <sha>^ <sha>`. If `git rev-parse --verify --quiet <sha>^` exits non-zero (root commit, no parent), diff against the empty tree: `git diff $(git hash-object -t tree /dev/null) <sha>`.
+- **`<commit> vs <base>`** — the commit's changes relative to a base revision with merge-base (PR) semantics, no GitHub: `git diff <base>...<commit>`.
 - **Anything else** — `git diff <arg>`; on error, report and stop.
 
 Always also explore the surrounding code — changed files, imports/callers, related tests. The Background section requires it, not just the diff text.
@@ -39,16 +43,18 @@ Every page header shows a diffstat — total lines added, lines removed, files c
 
 Totals: run the shortstat command matching the resolved target:
 
-- No args: `git diff --shortstat HEAD`
+- Uncommitted working tree: `git diff --shortstat HEAD`
 - `#N` PR: `gh pr view N --json additions,deletions,changedFiles` (fallback: `git diff --shortstat <default-branch>...<N-branch>`)
 - Branch: `git diff --shortstat <default-branch>...<branch>`
 - `a..b` / `a...b`: `git diff --shortstat <range>`
+- `commit <sha>`: `git diff --shortstat <sha>^ <sha>` (with the identical root-commit fallback — diff against the empty tree when `<sha>` has no parent)
+- `<commit> vs <base>`: `git diff --shortstat <base>...<commit>`
 - File path: `git diff --shortstat HEAD -- <path>`
 - Anything else: `git diff --shortstat <arg>`; on error, report and stop.
 
 `git diff --shortstat` prints `N files changed, X insertions(+), Y deletions(-)`, omitting a part when it is zero; if it prints nothing (no changes), all three numbers are 0.
 
-Per-file rows: run the numstat command for the same target (`--numstat` in place of `--shortstat`; for a `#N` PR use `gh pr view N --json files`, reading `path`/`additions`/`deletions`). Each numstat line is `added<TAB>deleted<TAB>path`; a `-` column means the file is binary — write the file's size in bytes in the `.file-add` span (human-readable with a unit, e.g. `2.3 KB`) and the word `binary` in the `.file-del` span. Get the size with `wc -c <path>` for a local/working-tree target, or `git cat-file -s <rev>:<path>` for a branch/PR/range target. An empty numstat output means no rows.
+Per-file rows: run the numstat command for the same target (`--numstat` in place of `--shortstat`; for a `#N` PR use `gh pr view N --json files`, reading `path`/`additions`/`deletions`). Each numstat line is `added<TAB>deleted<TAB>path`; a `-` column means the file is binary — write the file's size in bytes in the `.file-add` span (human-readable with a unit, e.g. `2.3 KB`) and the word `binary` in the `.file-del` span. Get the size with `wc -c <path>` for a local/working-tree target, or `git cat-file -s <rev>:<path>` for a branch/PR/range/commit target. An empty numstat output means no rows.
 
 Replace `PLACEHOLDER_DIFFSTAT` with exactly this structure (X, Y, N are the totals; one `<li>` per file; ASCII `-`, no thousands separators, `file` when N is 1, `files` otherwise; rows listed in numstat order):
 
