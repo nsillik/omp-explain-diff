@@ -33,7 +33,10 @@ if (!html.trim()) {
 }
 
 // ---------- check 2: no PLACEHOLDER_ tokens ----------
-const placeholders = html.match(/PLACEHOLDER_[A-Z_]+/g);
+// Raw-text <pre> bodies may legitimately quote the token; drop them.
+const placeholders = html
+  .replace(/<pre\b[^>]*>[\s\S]*?<\/pre>/gi, "")
+  .match(/PLACEHOLDER_[A-Z_]+/g);
 if (placeholders) {
   failures.push(
     `placeholder tokens remain: ${[...new Set(placeholders)].join(", ")}`,
@@ -148,8 +151,9 @@ function lineAt(src, idx) {
 const tagError = checkTags(html);
 if (tagError) failures.push(`tag balance: ${tagError}`);
 
-// Regex checks below must not match inside <script>/<style> bodies
-// (e.g. JS comments quoting markup). Keep the tags, drop the contents.
+// Regex checks below must not match inside <script>/<style>/<pre> bodies
+// (raw text: JS comments or code samples may quote markup). Keep the
+// tags, drop the contents.
 const structural = html
   .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, (m) => {
     const gt = m.indexOf(">");
@@ -158,6 +162,10 @@ const structural = html
   .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, (m) => {
     const gt = m.indexOf(">");
     return m.slice(0, gt + 1) + "</style>";
+  })
+  .replace(/<pre\b[^>]*>[\s\S]*?<\/pre>/gi, (m) => {
+    const gt = m.indexOf(">");
+    return m.slice(0, gt + 1) + "</pre>";
   });
 
 // ---------- check 4: one main#content, four sections with h2 ----------
