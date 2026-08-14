@@ -26,14 +26,16 @@ If invoked as a skill directly with **no pre-created output file**:
 
 The command's task prompt always includes a `Target: <value>` line; match the rules below against that value (they also cover direct skill invocation with an explicit arg). When the skill is invoked directly with **no** target, first ask the user which change to explain — offering the same menu the command offers: Uncommitted changes, A specific commit, A specific PR (GitHub PR #), A specific commit vs a base revision, or Other (free text) — via the `ask` tool, gathering the specific input for the chosen kind, then apply the matching rule; if the user declines, stop.
 
-- **`uncommitted working-tree changes`** (the command's menu label for it) — uncommitted working tree vs HEAD: `git diff HEAD`, `git status --short`, `git diff --stat HEAD`.
-- **`#N` or all-digits** — GitHub PR: `gh pr diff N` + `gh pr view N`. If `gh` is unavailable, fall back to `git diff <default-branch>...<N-branch>`.
-- **Branch name** — `git diff <default-branch>...<branch>` (three-dot = merge-base semantics). Default branch = `git symbolic-ref --short refs/remotes/origin/HEAD`, falling back to `main`, then `master`.
-- **`a..b` / `a...b`** — `git diff <range>`.
-- **Existing file path** — `git diff HEAD -- <path>`.
-- **`commit <sha>`** — the changes introduced by one commit: `git diff <sha>^ <sha>`. If `git rev-parse --verify --quiet <sha>^` exits non-zero (root commit, no parent), diff against the empty tree: `git diff $(git hash-object -t tree /dev/null) <sha>`.
-- **`<commit> vs <base>`** — the commit's changes relative to a base revision with merge-base (PR) semantics, no GitHub: `git diff <base>...<commit>`.
-- **Anything else** — `git diff <arg>`; on error, report and stop.
+Match the `Target: <value>` line against these rules **in order** — each rule fires only when its discriminator matches, and ambiguous input is verified before any guess:
+
+1. **Exact label `uncommitted working-tree changes`** (the command's menu label) — uncommitted working tree vs HEAD: `git diff HEAD`, `git status --short`, `git diff --stat HEAD`.
+2. **Range `a..b` / `a...b`** — the value contains `..` or `...` (regex `\.\.\.?`, no whitespace) — `git diff <range>`. Check this first; it would otherwise be swallowed by the branch or file rules below.
+3. **`#N` or all-digits** — the value matches `#\d+`, or is entirely digits — GitHub PR: `gh pr diff N` + `gh pr view N`. If `gh` is unavailable, fall back to `git diff <default-branch>...<N-branch>`.
+4. **`<commit> vs <base>`** — the value matches the explicit form `<ref> vs <ref>` — the commit's changes relative to a base revision with merge-base (PR) semantics, no GitHub: `git diff <base>...<commit>`.
+5. **`commit <sha>`** — the value matches the explicit prefix `commit ` followed by a SHA or ref — the changes introduced by one commit: `git diff <sha>^ <sha>`. If `git rev-parse --verify --quiet <sha>^` exits non-zero (root commit, no parent), diff against the empty tree: `git diff $(git hash-object -t tree /dev/null) <sha>`.
+6. **Anything else that looks like a ref or SHA** — verify before choosing branch-vs-commit semantics: run `git rev-parse --verify --quiet <value>^{commit}`. If it does not resolve, skip this rule. If it resolves and `git rev-parse --verify --quiet refs/heads/<value>` also succeeds, it's a **branch**: `git diff <default-branch>...<branch>` (three-dot = merge-base semantics). If it resolves as a commit only, treat it as a **bare SHA**: `git diff <sha>^..<sha>` (same root-commit fallback as rule 5). Default branch = `git symbolic-ref --short refs/remotes/origin/HEAD`, falling back to `main`, then `master`.
+7. **Existing file path** — `test -e <value>` exits 0 — `git diff HEAD -- <path>`.
+8. **Nothing above matches** — do not guess; ask the user to disambiguate (branch, commit, range, or file path) and stop until they answer.
 
 Always also explore the surrounding code — changed files, imports/callers, related tests. The Background section requires it, not just the diff text.
 
@@ -103,7 +105,7 @@ The essence of the change: what problem it solves and the mental model that make
 A high-level walkthrough of the change, grouped and ordered so it reads understandably — not a line-by-line dump. Reference real symbols from the diff.
 
 ### Quiz
-Exactly **5** questions, medium difficulty — they require real understanding of the change, not gotchas. Each question is interactive multiple choice with feedback. Use the example question markup shipped in the template as the model:
+Exactly **5** questions, medium difficulty — they require real understanding of the change, not gotchas. Each question is interactive multiple choice with feedback. Use the example question markup below as the model:
 
 ```html
 <div class="quiz-question" data-question>
@@ -120,7 +122,7 @@ Exactly **5** questions, medium difficulty — they require real understanding o
 
 - Exactly **one** `data-correct="true"` per question.
 - Feedback explains why the correct answer is right and why each wrong option fails.
-- Replace the example question with your five; keep the structure (`data-question`, 4 options, `data-correct` on each, `quiz-feedback`).
+- Replace the example question below with your five; keep the structure (`data-question`, 4 options, `data-correct` on each, `quiz-feedback`).
 
 ## Style
 

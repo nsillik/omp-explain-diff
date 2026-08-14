@@ -50,5 +50,5 @@ GitHub serves raw files as `text/plain`, so a direct link would show source; the
 
 ```sh
 bun scripts/validate.js <file>        # validate a generated page
-bun build src/index.ts --outfile=/dev/null  # syntax check the extension
+bun build --target=bun src/index.ts  # syntax check the extension
 ```
