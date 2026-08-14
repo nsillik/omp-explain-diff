@@ -1,0 +1,19 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "omp-explain-diff",
+  "owner": { "name": "nsillik" },
+  "metadata": {
+    "description": "Rich interactive HTML explanations of code changes (/explain-diff-html command + skill).",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "omp-explain-diff",
+      "description": "Rich interactive HTML explanations of code changes — /explain-diff-html command + skill.",
+      "source": ".",
+      "version": "0.1.0",
+      "license": "MIT",
+      "category": "development"
+    }
+  ]
+}

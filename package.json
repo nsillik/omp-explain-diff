@@ -1,0 +1,9 @@
+{
+  "name": "omp-explain-diff",
+  "version": "0.1.0",
+  "description": "Rich interactive HTML explanations of code changes. /explain-diff-html command + skill, based on a gist by @geoffreylitt.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "omp": { "extensions": ["./src/index.ts"] }
+}
