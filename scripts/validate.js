@@ -169,14 +169,14 @@ const structural = html
   });
 
 // ---------- check 4: one main#content, four sections with h2 ----------
-const mains = structural.match(/<\s*main\b[^>]*\bid\s*=\s*["']content["'][^>]*>/gi);
+const mains = structural.match(/<\s*main\b[^>]*(?<![\w-])id\s*=\s*["']content["'][^>]*>/gi);
 if (!mains || mains.length !== 1) {
   failures.push(`expected exactly one <main id="content">, found ${mains ? mains.length : 0}`);
 }
 
 for (const id of ["background", "intuition", "code", "quiz"]) {
   const open = new RegExp(
-    `<\\s*section\\b[^>]*\\bid\\s*=\\s*["']${id}["'][^>]*>`,
+    `<\\s*section\\b[^>]*(?<![\\w-])id\\s*=\\s*["']${id}["'][^>]*>`,
     "i",
   );
   const m = open.exec(structural);
@@ -193,38 +193,41 @@ for (const id of ["background", "intuition", "code", "quiz"]) {
 }
 
 // ---------- check 5: quiz contract ----------
-const questions = [...structural.matchAll(/<\s*div\b[^>]*\bclass\s*=\s*["'][^"']*\bquiz-question\b[^"']*["'][^>]*>/gi)];
+const questions = [...structural.matchAll(/<\s*div\b[^>]*(?<![\w-])class\s*=\s*["'][^"']*\bquiz-question\b[^"']*["'][^>]*>/gi)];
 if (questions.length !== 5) {
   failures.push(`expected exactly 5 quiz questions, found ${questions.length}`);
 }
 
 questions.forEach((m, qi) => {
-  const block = sliceToCloseDiv(structural, m.index);
-  const options = [...block.matchAll(/<\s*button\b[^>]*\bclass\s*=\s*["'][^"']*\bquiz-option\b[^"']*["'][^>]*>/gi)];
-  if (options.length < 3) {
-    failures.push(`question ${qi + 1}: expected at least 3 quiz options, found ${options.length}`);
+  if (!/(?<![\w-])data-question(?:\s*=\s*["'][^"']*["'])?(?=[\s>])/i.test(m[0])) {
+    failures.push(`question ${qi + 1}: missing data-question`);
   }
-  const correct = (block.match(/data-correct\s*=\s*["']true["']/gi) || []).length;
+  const block = sliceToCloseDiv(structural, m.index);
+  const options = [...block.matchAll(/<\s*button\b[^>]*(?<![\w-])class\s*=\s*["'][^"']*\bquiz-option\b[^"']*["'][^>]*>/gi)];
+  if (options.length !== 4) {
+    failures.push(`question ${qi + 1}: expected exactly 4 quiz options, found ${options.length}`);
+  }
+  const correct = options.filter((o) => /data-correct\s*=\s*["']true["']/i.test(o[0])).length;
   if (correct !== 1) {
     failures.push(`question ${qi + 1}: expected exactly one data-correct="true", found ${correct}`);
   }
-  const fb = /<\s*div\b[^>]*\bclass\s*=\s*["'][^"']*\bquiz-feedback\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i.exec(block);
+  const fb = /<\s*div\b[^>]*(?<![\w-])class\s*=\s*["'][^"']*\bquiz-feedback\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/i.exec(block);
   if (!fb || !fb[1].trim()) {
     failures.push(`question ${qi + 1}: missing non-empty .quiz-feedback`);
   }
 });
 
 // ---------- check 6: mermaid ----------
-const mermaidBlocks = structural.match(/<\s*pre\b[^>]*\bclass\s*=\s*["'][^"']*\bmermaid\b[^"']*["'][^>]*>/gi);
+const mermaidBlocks = structural.match(/<\s*pre\b[^>]*(?<![\w-])class\s*=\s*["'][^"']*\bmermaid\b[^"']*["'][^>]*>/gi);
 if (mermaidBlocks && mermaidBlocks.length > 0) {
-  const mermaidScript = structural.match(/<\s*script\b[^>]*\bsrc\s*=\s*["'][^"']*mermaid[^"']*["'][^>]*>/i);
+  const mermaidScript = structural.match(/<\s*script\b[^>]*(?<![\w-])src\s*=\s*["'][^"']*mermaid[^"']*["'][^>]*>/i);
   if (!mermaidScript) {
     failures.push(`${mermaidBlocks.length} mermaid block(s) without a mermaid <script src=...>`);
   }
 }
 
 // ---------- check 7: diffstat ----------
-const dsMatch = /<\s*details\b[^>]*\bclass\s*=\s*["'][^"']*\bdiffstat\b[^"']*["'][^>]*>([\s\S]*?)<\/details>/i.exec(structural);
+const dsMatch = /<\s*details\b[^>]*(?<![\w-])class\s*=\s*["'][^"']*\bdiffstat\b[^"']*["'][^>]*>([\s\S]*?)<\/details>/i.exec(structural);
 if (!dsMatch) {
   failures.push('missing <details class="diffstat"> in header');
 } else {
@@ -233,9 +236,9 @@ if (!dsMatch) {
   if (!sum) {
     failures.push('diffstat: missing <summary>');
   } else {
-    const statAdd = /class\s*=\s*["'][^"']*\bstat-add\b[^"']*["'][^>]*>([^<]*)</i.exec(sum[1]);
-    const statDel = /class\s*=\s*["'][^"']*\bstat-del\b[^"']*["'][^>]*>([^<]*)</i.exec(sum[1]);
-    const statFiles = /class\s*=\s*["'][^"']*\bstat-files\b[^"']*["'][^>]*>([^<]*)</i.exec(sum[1]);
+    const statAdd = /(?<![\w-])class\s*=\s*["'][^"']*\bstat-add\b[^"']*["'][^>]*>([^<]*)</i.exec(sum[1]);
+    const statDel = /(?<![\w-])class\s*=\s*["'][^"']*\bstat-del\b[^"']*["'][^>]*>([^<]*)</i.exec(sum[1]);
+    const statFiles = /(?<![\w-])class\s*=\s*["'][^"']*\bstat-files\b[^"']*["'][^>]*>([^<]*)</i.exec(sum[1]);
     if (!statAdd || !/^\s*\+\d+\s*$/.test(statAdd[1])) {
       failures.push('diffstat: expected <span class="stat-add">+N</span> in summary');
     }
@@ -246,19 +249,19 @@ if (!dsMatch) {
       failures.push('diffstat: expected <span class="stat-files">N files</span> in summary');
     }
     const filesN = statFiles ? parseInt(statFiles[1], 10) : 0;
-    const list = /<\s*ul\b[^>]*\bclass\s*=\s*["'][^"']*\bdiffstat-files\b[^"']*["'][^>]*>([\s\S]*?)<\/ul>/i.exec(inner);
+    const list = /<\s*ul\b[^>]*(?<![\w-])class\s*=\s*["'][^"']*\bdiffstat-files\b[^"']*["'][^>]*>([\s\S]*?)<\/ul>/i.exec(inner);
     if (!list) {
       failures.push('diffstat: missing <ul class="diffstat-files">');
     } else {
       const rows = [...list[1].matchAll(/<\s*li\b[^>]*>([\s\S]*?)<\/li>/gi)];
       const binOrSize = /^\s*(?:[+-]\d+|binary|\d+(?:\.\d+)?\s*[kmgt]?i?b?)\s*$/i;
-      if (filesN > 0 && rows.length === 0) {
-        failures.push('diffstat: expected per-file rows, found none');
+      if (filesN > 0 && rows.length !== filesN) {
+        failures.push(`diffstat: expected ${filesN} rows, found ${rows.length}`);
       }
       rows.forEach((r, i) => {
-        const name = /class\s*=\s*["'][^"']*\bfile-name\b[^"']*["'][^>]*>([\s\S]*?)</i.exec(r[1]);
-        const add = /class\s*=\s*["'][^"']*\bfile-add\b[^"']*["'][^>]*>([^<]*)</i.exec(r[1]);
-        const del = /class\s*=\s*["'][^"']*\bfile-del\b[^"']*["'][^>]*>([^<]*)</i.exec(r[1]);
+        const name = /(?<![\w-])class\s*=\s*["'][^"']*\bfile-name\b[^"']*["'][^>]*>([\s\S]*?)</i.exec(r[1]);
+        const add = /(?<![\w-])class\s*=\s*["'][^"']*\bfile-add\b[^"']*["'][^>]*>([^<]*)</i.exec(r[1]);
+        const del = /(?<![\w-])class\s*=\s*["'][^"']*\bfile-del\b[^"']*["'][^>]*>([^<]*)</i.exec(r[1]);
         if (!name || !name[1].trim()) {
           failures.push(`diffstat file ${i + 1}: missing .file-name`);
         }
@@ -275,7 +278,7 @@ if (!dsMatch) {
 
 // ---------- summary ----------
 const sectionsFound = ["background", "intuition", "code", "quiz"].filter(
-  (id) => new RegExp(`<\\s*section\\b[^>]*\\bid\\s*=\\s*["']${id}["']`, "i").test(structural),
+  (id) => new RegExp(`<\\s*section\\b[^>]*(?<![\\w-])id\\s*=\\s*["']${id}["']`, "i").test(structural),
 ).length;
 
 if (failures.length > 0) {
