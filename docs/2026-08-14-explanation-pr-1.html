@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR #1: Interactive Target Selection for /explain-diff-html</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #5b5b5b;
+    --border: #d9d9d9;
+    --accent: #2f5fd0;
+    --accent-soft: #e8eefc;
+    --code-bg: #f5f5f5;
+    --callout-bg: #f6f8fb;
+    --key-bg: #eef7ee;
+    --key-border: #3d8b40;
+    --warn-bg: #fdf4ec;
+    --warn-border: #c2691f;
+    --ok-bg: #e9f7ec;
+    --ok-border: #2e8b47;
+    --bad-bg: #fdecec;
+    --bad-border: #c0392b;
+    --node-bg: #f2f5fc;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16181d;
+      --fg: #e6e6e6;
+      --muted: #9a9a9a;
+      --border: #33363e;
+      --accent: #7ba0f0;
+      --accent-soft: #232c42;
+      --code-bg: #101216;
+      --callout-bg: #1d2027;
+      --key-bg: #1c2a1f;
+      --key-border: #5cb867;
+      --warn-bg: #2b2218;
+      --warn-border: #d98a3d;
+      --ok-bg: #1c2a20;
+      --ok-border: #55b06a;
+      --bad-bg: #2b1c1c;
+      --bad-border: #d15b4e;
+      --node-bg: #1d2230;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+  }
+  html { scroll-behavior: smooth; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 17px;
+    line-height: 1.65;
+  }
+  h1, h2, h3, h4 {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.25;
+    color: var(--fg);
+  }
+  h1 { font-size: 1.9rem; margin: 0 0 0.3rem; }
+  h2 {
+    font-size: 1.35rem;
+    margin: 2.4rem 0 0.9rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid var(--border);
+    scroll-margin-top: 1rem;
+  }
+  h3 { font-size: 1.05rem; margin: 1.6rem 0 0.6rem; }
+  p { margin: 0.7rem 0; }
+  a { color: var(--accent); }
+  /* GLOBAL: code must wrap, never overflow the page */
+  pre {
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+  }
+  code, pre, .d-data, .ui-val, .quiz-letter, .mermaid {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  code {
+    background: var(--code-bg);
+    padding: 0.12em 0.35em;
+    border-radius: 4px;
+    font-size: 0.88em;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.9rem 1rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    overflow-x: auto;
+  }
+  pre code { background: none; padding: 0; }
+
+  .wrap {
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: 1.25rem 1.5rem 3rem;
+  }
+  header { margin-bottom: 1rem; }
+  .subtitle { font-size: 1.05rem; color: var(--muted); margin: 0 0 0.4rem; }
+  .meta {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  /* Diffstat (tap to expand per-file breakdown) */
+  .diffstat {
+    margin: 0.55rem 0 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.85rem;
+  }
+  .diffstat summary {
+    display: flex;
+    align-items: baseline;
+    gap: 0.55rem;
+    cursor: pointer;
+    list-style: none;
+  }
+  .diffstat summary::-webkit-details-marker { display: none; }
+  .stat-add, .stat-del {
+    padding: 0.05em 0.55em;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .stat-add { color: var(--ok-border); background: var(--ok-bg); }
+  .stat-del { color: var(--bad-border); background: var(--bad-bg); }
+  .stat-files { color: var(--muted); }
+  .diffstat-toggle {
+    margin-left: auto;
+    color: var(--accent);
+    font-size: 0.8em;
+    white-space: nowrap;
+  }
+  .diffstat-toggle::before { content: "▼ per-file"; }
+  .diffstat[open] .diffstat-toggle::before { content: "▲ per-file"; }
+  .diffstat-files {
+    margin: 0.55rem 0 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--border);
+  }
+  .diffstat-files li {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0.3rem 0;
+    border-bottom: 1px dotted var(--border);
+    font-size: 0.82rem;
+  }
+  .diffstat-files .file-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .diffstat-files .file-add { color: var(--ok-border); }
+  .diffstat-files .file-del { color: var(--bad-border); }
+
+  #toc {
+    margin: 1.2rem 0 0.4rem;
+    padding: 0.8rem 1rem;
+    background: var(--callout-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.9rem;
+  }
+  #toc ol { margin: 0.2rem 0 0; padding-left: 1.4rem; }
+  #toc li { margin: 0.15rem 0; }
+
+  /* Callouts */
+  .callout {
+    margin: 1.2rem 0;
+    padding: 0.8rem 1rem;
+    background: var(--callout-bg);
+    border-left: 4px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    font-size: 0.95rem;
+  }
+  .callout.key { background: var(--key-bg); border-left-color: var(--key-border); }
+  .callout.warn { background: var(--warn-bg); border-left-color: var(--warn-border); }
+  .callout-label {
+    display: block;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.35rem;
+  }
+
+  /* Diagrams (data flow) */
+  .diagram {
+    margin: 1.2rem 0;
+    padding: 1rem;
+    background: var(--callout-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .d-flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .d-node {
+    background: var(--node-bg);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 0.45rem 0.9rem;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.9rem;
+    box-shadow: var(--shadow);
+  }
+  .d-arrow {
+    color: var(--muted);
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0.1rem 0;
+  }
+  .d-data {
+    background: var(--code-bg);
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    padding: 0.35rem 0.8rem;
+    font-size: 0.82rem;
+    overflow-wrap: anywhere;
+  }
+  .d-cap {
+    margin-top: 0.7rem;
+    font-size: 0.82rem;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* UI mock (browser/app window) */
+  .ui-mock {
+    margin: 1.2rem 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.9rem;
+    box-shadow: var(--shadow);
+  }
+  .ui-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.7rem;
+    background: var(--code-bg);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .ui-bar::before {
+    content: "● ● ●";
+    letter-spacing: 0.2em;
+    font-size: 0.6rem;
+    color: var(--muted);
+    margin-right: 0.4rem;
+  }
+  .ui-body { padding: 0.8rem; background: var(--bg); }
+  .ui-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.3rem 0;
+    border-bottom: 1px dotted var(--border);
+  }
+  .ui-row:last-child { border-bottom: none; }
+  .ui-label { color: var(--muted); }
+  .ui-val { font-size: 0.85rem; text-align: right; overflow-wrap: anywhere; }
+
+  /* Figures & examples */
+  .fig { margin: 1.2rem 0; }
+  .fig-body {
+    background: var(--callout-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.9rem 1rem;
+  }
+  .fig-cap {
+    margin-top: 0.4rem;
+    font-size: 0.82rem;
+    color: var(--muted);
+    text-align: center;
+  }
+  .example { margin: 0.9rem 0; }
+  .example-label {
+    display: block;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.3rem;
+  }
+
+  /* Quiz */
+  .quiz { margin: 1.2rem 0; }
+  .quiz-question { margin: 1.4rem 0; }
+  .quiz-q {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-weight: 600;
+    margin: 0 0 0.5rem;
+  }
+  .quiz-options { display: flex; flex-direction: column; gap: 0.45rem; }
+  .quiz-option {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    width: 100%;
+    text-align: left;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.92rem;
+    color: var(--fg);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 0.8rem;
+    cursor: pointer;
+    transition: border-color 0.12s ease, background 0.12s ease;
+  }
+  .quiz-option:hover:not(:disabled) { border-color: var(--accent); }
+  .quiz-option:disabled { cursor: default; }
+  .quiz-letter {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+    background: var(--code-bg);
+  }
+  .quiz-option.selected { border-color: var(--accent); background: var(--accent-soft); }
+  .quiz-option.correct { border-color: var(--ok-border); background: var(--ok-bg); }
+  .quiz-option.wrong { border-color: var(--bad-border); background: var(--bad-bg); }
+  .quiz-option.correct .quiz-letter,
+  .quiz-option.wrong .quiz-letter { color: var(--fg); }
+  .quiz-feedback {
+    margin-top: 0.55rem;
+    padding: 0.6rem 0.85rem;
+    background: var(--callout-bg);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+    font-size: 0.88rem;
+  }
+  .quiz-feedback[hidden] { display: none; }
+  .quiz-score {
+    margin-top: 1.6rem;
+    padding: 0.7rem 1rem;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-weight: 600;
+  }
+
+  footer {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  @media (max-width: 600px) {
+    body { font-size: 15.5px; }
+    .wrap { padding: 0.9rem 1rem 2.5rem; }
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: 1.15rem; }
+    .ui-row { flex-direction: column; gap: 0.1rem; }
+    .ui-val { text-align: left; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>PR #1: Interactive Target Selection for /explain-diff-html</h1>
+    <p class="subtitle">Bare <code>/explain-diff-html</code> now asks which change to explain — uncommitted changes, a commit, a PR, commit vs base, or free text — and cancelling creates nothing.</p>
+    <p class="meta">2026-08-14 · PR #1 — Add interactive target selection for bare /explain-diff-html</p>
+    <details class="diffstat">
+  <summary>
+    <span class="stat-add">+75</span>
+    <span class="stat-del">-8</span>
+    <span class="stat-files">3 files</span>
+    <span class="diffstat-toggle"></span>
+  </summary>
+  <ul class="diffstat-files">
+    <li><code class="file-name">README.md</code><span class="file-add">+1</span><span class="file-del">-1</span></li>
+    <li><code class="file-name">skills/explain-diff-html/SKILL.md</code><span class="file-add">+9</span><span class="file-del">-3</span></li>
+    <li><code class="file-name">src/index.ts</code><span class="file-add">+65</span><span class="file-del">-4</span></li>
+  </ul>
+</details>
+  </header>
+
+  <nav id="toc" aria-label="Table of contents"></nav>
+
+  <main id="content">
+    <section id="background">
+      <h2>Background</h2>
+      <p><em>If you're new here:</em> this page explains a change to an agent extension — a small program that adds a slash command to an AI coding agent. A command works like a CLI tool: you type <code>/explain-diff-html</code>, the extension's handler runs, and it ends by handing the agent a task. This particular command turns a git change into a self-contained HTML page — Background, Intuition, Code, and Quiz sections — exactly like the page you are reading now.</p>
+
+<h3>What the command did before</h3>
+<p>The extension is small: one handler in <code>src/index.ts</code>, a workflow document in <code>skills/explain-diff-html/SKILL.md</code>, a packaged HTML template, and a validator script. The handler took one optional argument and silently defaulted everything else:</p>
+<pre>const target = args.trim() || "uncommitted working-tree changes";</pre>
+<p>No argument meant exactly one thing: <em>uncommitted working-tree changes</em>. To explain a PR you had to already know the syntax <code>/explain-diff-html #123</code>; a commit range was <code>/explain-diff-html a..b</code>; a branch was just its name. The command also committed to its action immediately — it created the output directory, copied the template into a dated file, and only then launched the explanation task with a <code>Target:</code> line telling the agent which git commands to run.</p>
+
+<h3>How a target becomes an explanation</h3>
+<p>Every generated file lands in <code>~/.omp/explain-diffs/</code> as <code>YYYY-MM-DD-explanation-&lt;slug&gt;.html</code>. The slug is produced by a small <code>slugify</code> function: lowercase, runs of non-alphanumerics become dashes, a leading <code>#</code> becomes <code>pr-</code>, capped at 60 characters. The <code>Target:</code> value is resolved by rules in the skill — <code>#N</code> means <code>gh pr diff N</code>, a branch means <code>git diff &lt;default-branch&gt;...&lt;branch&gt;</code>, a range means <code>git diff &lt;range&gt;</code>, anything else means <code>git diff &lt;arg&gt;</code> — and the same rule drives the header diffstat (shortstat/numstat) on the page.</p>
+
+<h3>The interactive side of the harness</h3>
+<p>Extensions run inside the agent harness, which exposes UI helpers through <code>ctx.ui</code>:</p>
+<ul>
+  <li><code>select(label, options)</code> — a menu; resolves to the chosen option, or <code>undefined</code> if the user escapes or it times out.</li>
+  <li><code>input(label, placeholder?)</code> — a text field; resolves to the typed string, or <code>undefined</code> on cancel.</li>
+  <li><code>notify(message, level)</code> — a one-line status message.</li>
+</ul>
+<p>This PR is the first time the command uses that interactive API: <code>select</code> and <code>input</code> to gather a target, <code>notify</code> to report cancellation.</p>
+
+<div class="callout key"><span class="callout-label">Key idea</span>
+A <em>target</em> is a description of a code change — uncommitted working tree, a PR, a commit, a range — that the skill turns into concrete git commands. This change adds a way to <em>choose</em> a target interactively instead of being locked into one default.
+</div>
+    </section>
+
+    <section id="intuition">
+      <h2>Intuition</h2>
+      <p>The old command had two rough edges. The default was <em>silent and surprising</em>: a bare <code>/explain-diff-html</code> explained the working tree, whether or not that was what you wanted. And there was no "change my mind": the moment the command ran, it created a directory and a file.</p>
+
+<p>The fix reframes the command as a pipeline with a decision gate at the front. <em>Deciding what to explain</em> — pure conversation, no side effects — is separated from <em>creating the page</em> — filesystem writes. If you cancel at the gate, nothing has happened yet.</p>
+
+<div class="diagram"><div class="d-flow">
+  <div class="d-node">bare /explain-diff-html</div>
+  <div class="d-arrow">▼</div>
+  <div class="d-node">resolveTarget(args, ctx.ui)</div>
+  <div class="d-arrow">▼</div>
+  <div class="d-data">menu → per-kind input → { label, slug }</div>
+  <div class="d-arrow">▼</div>
+  <div class="d-node">mkdir → copy template → task prompt with Target: label</div>
+  <div class="d-cap">Escaping at any prompt returns null → notify "cancelled — nothing created" → early return, filesystem untouched.</div>
+</div></div>
+
+<p>The gate has two lanes. An explicit argument sails straight through — the fast path, byte-for-byte the old behavior. Only a bare invocation stops at the menu:</p>
+
+<div class="diagram"><div class="d-flow">
+  <div class="d-node">args.trim() non-empty?</div>
+  <div class="d-arrow">▼ yes — fast path</div>
+  <div class="d-data">{ label: args, slug: args } — menu never shown</div>
+  <div class="d-arrow">▼ no — interactive</div>
+  <div class="d-data">5-option menu → SHA / PR # / base / free text → { label, slug }</div>
+  <div class="d-cap">Either lane ends in the same shape: a label for the agent, a slug for the filename.</div>
+</div></div>
+
+<p>Every resolved target is a pair, and the two halves serve different consumers:</p>
+<div class="callout key"><span class="callout-label">label vs slug</span>
+The <strong>label</strong> is human-readable and goes into the task prompt's <code>Target:</code> line — the agent uses it to choose git commands. The <strong>slug</strong> is filename-safe and becomes the output file's name. Choosing "A specific commit" and entering <code>a1b2c3d4e5f67890</code> yields label <code>commit a1b2c3d4e5f67890</code> but slug <code>a1b2c3d4e5f6</code> (first 12 characters). Same idea, two formats, two consumers.
+</div>
+
+<div class="ui-mock">
+  <div class="ui-bar">menu choice → what the command records</div>
+  <div class="ui-body">
+    <div class="ui-row"><span class="ui-label">Uncommitted changes</span><span class="ui-val">Target: uncommitted working-tree changes → …-uncommitted.html</span></div>
+    <div class="ui-row"><span class="ui-label">A specific commit · a1b2c3d4e5f67890</span><span class="ui-val">Target: commit a1b2c3d4e5f67890 → …-a1b2c3d4e5f6.html</span></div>
+    <div class="ui-row"><span class="ui-label">A specific PR · 42</span><span class="ui-val">Target: #42 → …-pr-42.html</span></div>
+    <div class="ui-row"><span class="ui-label">Commit vs base · a1b2c3d vs main</span><span class="ui-val">Target: a1b2c3d vs main → …-a1b2c3d-vs-main.html</span></div>
+    <div class="ui-row"><span class="ui-label">Other · src/index.ts</span><span class="ui-val">Target: src/index.ts → …-src-index-ts.html</span></div>
+  </div>
+</div>
+
+<div class="callout warn"><span class="callout-label">Why order matters</span>
+Cancelling is free because <em>resolution</em> happens strictly before <em>creation</em>. In the old code the very first statements were <code>mkdirSync</code> and the template copy; in the new code those run only after <code>resolveTarget</code> has returned a real target. Escaping a prompt is therefore a no-op on disk — not a cleanup, just a decision that was never made.
+</div>
+    </section>
+
+    <section id="code">
+      <h2>Code</h2>
+      <p>The diff touches three files, but the substance is in <code>src/index.ts</code>: a new <code>resolveTarget</code> helper plus two small types. The skill and README changes extend the target language the workflow understands.</p>
+
+<h3>1. Resolution before side effects</h3>
+<p>The handler's first act is now a question, not a write. Before this PR the first statements created the output directory and copied the template; now <code>resolveTarget</code> runs first, and a <code>null</code> result (cancel) returns immediately:</p>
+<pre>const target = await resolveTarget(args, ctx.ui);
+if (!target) return;
+
+const outDir =
+  process.env.EXPLAIN_DIFF_OUTPUT_DIR ??
+  join(homedir(), ".omp", "explain-diffs");
+mkdirSync(outDir, { recursive: true });</pre>
+<p>This ordering is the whole point: <code>resolveTarget</code> only talks to the user — no files, no network. Every filesystem operation happens strictly after the decision.</p>
+
+<h3>2. The contract: label vs slug</h3>
+<p>Two types define the shape of a resolved target and the UI surface the helper needs:</p>
+<pre>type ResolvedTarget = { label: string; slug: string } | null;
+
+type TargetUi = {
+  select(label: string, options: string[]): Promise&lt;string | undefined&gt;;
+  input(label: string, placeholder?: string): Promise&lt;string | undefined&gt;;
+  notify(message: string, level: "info" | "error"): void;
+};</pre>
+<p><code>TargetUi</code> is a minimal structural type for <code>ctx.ui</code> — the handler passes the real object, and the type keeps <code>resolveTarget</code> self-contained (and easy to test in isolation, as the PR's smoke test does).</p>
+
+<h3>3. Fast path: explicit arguments unchanged</h3>
+<p>Anything non-empty trims and passes straight through, exactly as before:</p>
+<pre>const trimmed = args.trim();
+if (trimmed) return { label: trimmed, slug: trimmed };</pre>
+<p>So <code>/explain-diff-html #7</code> never shows the menu: the target is <code>#7</code>, and <code>slugify</code>'s leading-<code>#</code> rule turns it into <code>pr-7</code>.</p>
+
+<h3>4. The menu and the cancel helper</h3>
+<p>A bare invocation shows five options. Escaping returns <code>undefined</code>, which routes to <code>cancel()</code> — a notify plus <code>null</code>:</p>
+<pre>const cancel = (): null => {
+  ui.notify("explain-diff-html: cancelled — nothing created", "info");
+  return null;
+};
+
+const choice = await ui.select("What do you want explained?", [
+  "Uncommitted changes",
+  "A specific commit",
+  "A specific PR (GitHub PR #)",
+  "A specific commit vs a base revision",
+  "Other (type your own)",
+]);
+if (!choice) return cancel();</pre>
+
+<h3>5. Per-kind gathering</h3>
+<p>Each menu option collects exactly what its git rule needs, then builds its <code>label</code>/<code>slug</code> pair. Empty input at any point is treated as a cancel:</p>
+<pre>switch (choice) {
+  case "Uncommitted changes":
+    return { label: "uncommitted working-tree changes", slug: "uncommitted" };
+  case "A specific commit": {
+    const sha = (await ui.input("Commit (SHA or ref):", "e.g. a1b2c3d") ?? "").trim();
+    if (!sha) return cancel();
+    return { label: `commit ${sha}`, slug: sha.slice(0, 12) };
+  }
+  case "A specific PR (GitHub PR #)": {
+    const n = (await ui.input("GitHub PR number:", "e.g. 123") ?? "").trim();
+    if (!n) return cancel();
+    return { label: `#${n}`, slug: `pr-${n}` };
+  }
+  // "commit vs base" reads two inputs and returns
+  //   { label: `${sha} vs ${base}`, slug: `${sha.slice(0, 12)} vs ${base}` }
+  // "Other" returns { label: text, slug: text } for the typed free text.
+}</pre>
+<p>The "commit vs base" slug still flows through <code>slugify</code>, so <code>a1b2c3d4e5f6 vs main</code> becomes the filename <code>a1b2c3d4e5f6-vs-main</code>.</p>
+
+<h3>6. Wiring label and slug into the pipeline</h3>
+<pre>const slug = slugify(target.slug);
+const outPath = join(outDir, `${date}-explanation-${slug}.html`);
+// …
+Target: ${target.label}</pre>
+<p>The label lands in the <code>Target:</code> line the agent sees; the slug lands in the filename. Previously both came from the raw argument — now they may differ (e.g. <code>commit a1b2c3d4e5f67890</code> vs <code>a1b2c3d4e5f6</code>).</p>
+
+<h3>7. The skill learns the new targets</h3>
+<p><code>SKILL.md</code> now matches its rules against the <code>Target:</code> line and adds two rules for the menu's commit-based options:</p>
+<ul>
+  <li><code>commit &lt;sha&gt;</code> — <code>git diff &lt;sha&gt;^ &lt;sha&gt;</code>, with a root-commit fallback: if the parent lookup fails, diff against the empty tree so the whole commit still renders as additions.</li>
+  <li><code>&lt;commit&gt; vs &lt;base&gt;</code> — <code>git diff &lt;base&gt;...&lt;commit&gt;</code>, i.e. merge-base (PR) semantics without needing GitHub.</li>
+</ul>
+<p>Both kinds also get matching shortstat/numstat commands so the header diffstat works for them. Direct skill invocation with no target asks the same menu through the <code>ask</code> tool instead of silently defaulting, and the README's usage table advertises the interactive bare invocation.</p>
+
+<div class="callout warn"><span class="callout-label">Edge case</span>
+<code>git diff &lt;sha&gt;^ &lt;sha&gt;</code> fails when the commit has no parent. The skill checks <code>git rev-parse --verify --quiet &lt;sha&gt;^</code>; a non-zero exit means root commit, and it falls back to diffing against the empty tree — the entire commit appears as one additions block.
+</div>
+    </section>
+
+    <section id="quiz">
+      <h2>Quiz</h2>
+      <div class="quiz" data-quiz>
+<div class="quiz-question" data-question>
+  <p class="quiz-q">1. A user runs the bare command, picks "A specific commit", and enters a1b2c3d4e5f67890. What pair does the command produce?</p>
+  <div class="quiz-options">
+    <button class="quiz-option" data-correct="true">Target: line <code>commit a1b2c3d4e5f67890</code>, file slug <code>a1b2c3d4e5f6</code></button>
+    <button class="quiz-option" data-correct="false">Target: line <code>a1b2c3d4e5f67890</code>, file slug <code>a1b2c3d4e5f67890</code></button>
+    <button class="quiz-option" data-correct="false">Target: line <code>commit a1b2c3d4e5f67890</code>, file slug <code>commit-a1b2c3d4e5f67890</code></button>
+    <button class="quiz-option" data-correct="false">Target: line <code>#a1b2c3d4e5f67890</code>, file slug <code>pr-a1b2c3d4e5f6</code></button>
+  </div>
+  <div class="quiz-feedback" hidden>The commit branch returns <code>{ label: \`commit ${sha}\`, slug: sha.slice(0, 12) }</code>: the prompt gets the full <code>commit a1b2c3d4e5f67890</code> label while the filename uses the first 12 characters. The second option drops the "commit" prefix the skill's rule needs; the third keeps the full SHA and adds a "commit-" prefix that doesn't exist; the fourth is the PR format (<code>#N</code> → <code>pr-N</code>).</div>
+</div>
+
+<div class="quiz-question" data-question>
+  <p class="quiz-q">2. Why does <code>resolveTarget</code> run before <code>mkdirSync</code> in the handler?</p>
+  <div class="quiz-options">
+    <button class="quiz-option" data-correct="true">So cancelling at any prompt leaves zero side effects — no directory and no file are created</button>
+    <button class="quiz-option" data-correct="false">So the output directory can be validated against the resolved target</button>
+    <button class="quiz-option" data-correct="false">So the current date can be computed after the target is known</button>
+    <button class="quiz-option" data-correct="false">Because <code>slugify</code> must run before the output directory can exist</button>
+  </div>
+  <div class="quiz-feedback" hidden>Resolution is pure conversation; <code>if (!target) return;</code> stops before the first filesystem call, so an escape at any prompt is a no-op on disk. No such directory-vs-target validation exists — <code>outDir</code> comes from env or home only. The date is independent of the target. And <code>mkdirSync</code> only needs <code>outDir</code>; the slug affects the filename, not the directory.</div>
+</div>
+
+<div class="quiz-question" data-question>
+  <p class="quiz-q">3. Which path produces the file <code>2026-08-14-explanation-pr-42.html</code>?</p>
+  <div class="quiz-options">
+    <button class="quiz-option" data-correct="true">Bare command → "A specific PR (GitHub PR #)" → type 42</button>
+    <button class="quiz-option" data-correct="false">Bare command → "A specific commit" → type 42</button>
+    <button class="quiz-option" data-correct="false">Bare command → "Other (type your own)" → type 42</button>
+    <button class="quiz-option" data-correct="false"><code>/explain-diff-html 42</code> (explicit argument)</button>
+  </div>
+  <div class="quiz-feedback" hidden>The PR branch returns slug <code>pr-42</code>, which slugify keeps as-is. "A specific commit" gives slug <code>42</code> (label <code>commit 42</code>); "Other" gives label and slug both <code>42</code>; and an explicit argument takes the fast path with no menu, so the target is the literal <code>42</code> — the <code>pr-</code> prefix only comes from a leading <code>#</code>.</div>
+</div>
+
+<div class="quiz-question" data-question>
+  <p class="quiz-q">4. What happens when an explicit argument like <code>#7</code> is passed?</p>
+  <div class="quiz-options">
+    <button class="quiz-option" data-correct="true">The menu is skipped entirely; the target is <code>#7</code> and the slug becomes <code>pr-7</code></button>
+    <button class="quiz-option" data-correct="false">The menu opens with <code>#7</code> preselected</button>
+    <button class="quiz-option" data-correct="false">The command errors because <code>#</code> is a shell comment character</button>
+    <button class="quiz-option" data-correct="false">It silently falls back to uncommitted working-tree changes</button>
+  </div>
+  <div class="quiz-feedback" hidden><code>if (trimmed) return { label: trimmed, slug: trimmed };</code> short-circuits before any UI, and slugify's leading-<code>#</code> rule produces <code>pr-7</code>. The menu exists only for the bare invocation. The argument comes from the harness, not a shell. And the silent uncommitted default is exactly the behavior this PR removes.</div>
+</div>
+
+<div class="quiz-question" data-question>
+  <p class="quiz-q">5. The skill adds a <code>commit &lt;sha&gt;</code> rule. What happens when that commit is the root commit (no parent)?</p>
+  <div class="quiz-options">
+    <button class="quiz-option" data-correct="true">The diff falls back to the empty tree, so the whole commit appears as additions</button>
+    <button class="quiz-option" data-correct="false">The command errors and asks for a parent revision</button>
+    <button class="quiz-option" data-correct="false">It diffs against the default branch instead</button>
+    <button class="quiz-option" data-correct="false">It switches to uncommitted working-tree changes</button>
+  </div>
+  <div class="quiz-feedback" hidden><code>git rev-parse --verify --quiet &lt;sha&gt;^</code> exits non-zero for a root commit, so the rule diffs against the empty tree — the commit's full content is still explained. The fallback exists precisely to avoid an error. The default branch is the branch rule with different semantics, and uncommitted changes is unrelated to commit targets.</div>
+</div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Generated by explain-diff · based on an idea by
+    <a href="https://gist.github.com/geoffreylitt/a29df1b5f9865506e8952488eac3d524">@geoffreylitt</a>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // Table of contents: one entry per <h2> inside <main id="content">.
+  try {
+    var content = document.getElementById("content");
+    var toc = document.getElementById("toc");
+    var headings = content ? content.querySelectorAll("h2") : [];
+    if (headings.length > 0) {
+      var ol = document.createElement("ol");
+      headings.forEach(function (h, i) {
+        if (!h.id) {
+          h.id = "section-" + (i + 1) + "-" + slugify(h.textContent);
+        }
+        var li = document.createElement("li");
+        var a = document.createElement("a");
+        a.href = "#" + h.id;
+        a.textContent = h.textContent;
+        li.appendChild(a);
+        ol.appendChild(li);
+      });
+      toc.appendChild(ol);
+    }
+  } catch (err) {
+    console.warn("explain-diff: TOC build failed:", err);
+  }
+
+  // Quiz: label options A-D, score answers, reveal feedback.
+  try {
+    var questions = document.querySelectorAll(".quiz .quiz-question");
+    questions.forEach(function (q, qi) {
+      var options = q.querySelectorAll(".quiz-option");
+      var letters = ["A", "B", "C", "D", "E", "F"];
+      options.forEach(function (opt, oi) {
+        var letter = document.createElement("span");
+        letter.className = "quiz-letter";
+        letter.textContent = letters[oi] || String.fromCharCode(65 + oi);
+        opt.insertBefore(letter, opt.firstChild);
+      });
+      q.addEventListener("click", function (ev) {
+        var btn = ev.target.closest(".quiz-option");
+        if (!btn || btn.disabled) return;
+        var correct = btn.getAttribute("data-correct") === "true";
+        options.forEach(function (opt) {
+          opt.disabled = true;
+          if (opt.getAttribute("data-correct") === "true") {
+            opt.classList.add("correct");
+          }
+        });
+        btn.classList.add("selected");
+        if (!correct) btn.classList.add("wrong");
+        var fb = q.querySelector(".quiz-feedback");
+        if (fb) fb.hidden = false;
+        maybeScore();
+      });
+    });
+
+    function maybeScore() {
+      var done = 0;
+      var correctCount = 0;
+      questions.forEach(function (q) {
+        var selected = q.querySelector(".quiz-option.selected");
+        if (!selected) return;
+        done++;
+        if (selected.getAttribute("data-correct") === "true") correctCount++;
+      });
+      if (done !== questions.length || questions.length === 0) return;
+      var quiz = document.querySelector(".quiz[data-quiz]");
+      if (!quiz) return;
+      if (quiz.querySelector(".quiz-score")) return;
+      var score = document.createElement("div");
+      score.className = "quiz-score";
+      score.textContent =
+        "You answered " + correctCount + " of " + questions.length + " correctly.";
+      quiz.appendChild(score);
+    }
+  } catch (err) {
+    console.warn("explain-diff: quiz setup failed:", err);
+  }
+
+  function slugify(text) {
+    return (text || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60);
+  }
+})();
+</script>
+</body>
+</html>

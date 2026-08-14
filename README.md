@@ -32,6 +32,14 @@ Dropping the repo into `~/.omp/agent/extensions/` loads the command but **not** 
 - Override the directory with the `EXPLAIN_DIFF_OUTPUT_DIR` environment variable.
 - Re-running for the same target on the same day overwrites the previous file.
 
+## Example
+
+A real generated page — the explanation of the PR that added interactive target selection:
+
+[2026-08-14-explanation-pr-1.html](https://htmlpreview.github.io/?https://github.com/nsillik/omp-explain-diff/blob/main/docs/2026-08-14-explanation-pr-1.html)
+
+GitHub serves raw files as `text/plain`, so a direct link would show source; the `htmlpreview.github.io` wrapper fetches the raw file and renders the full page — styles, auto-TOC, and interactive quiz included — in the browser. The file itself lives in [`docs/`](docs/2026-08-14-explanation-pr-1.html) and can be opened directly from a local checkout.
+
 ## How it works
 
 1. **Template pre-copy, edit in place.** The command copies the packaged `templates/explanation.html` (all CSS + JS: responsive styling, auto-TOC, interactive quiz) to the dated output file, then starts a turn that edits only the marked content slots — no tokens spent building the page.
