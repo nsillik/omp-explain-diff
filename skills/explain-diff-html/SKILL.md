@@ -7,7 +7,7 @@ description: Use when the user asks for a rich explanation of a code change, dif
 
 Based on a gist by @geoffreylitt: https://gist.github.com/geoffreylitt/a29df1b5f9865506e8952488eac3d524
 
-Produce a rich, interactive, self-contained HTML explanation of a code change with four sections: **Background**, **Intuition**, **Code**, **Quiz**. The page is a single HTML file with embedded CSS and JavaScript — no build step, no external assets (except optional Mermaid via CDN for complex diagrams).
+Produce a rich, interactive, self-contained HTML explanation of a code change with four sections: **Background**, **Intuition**, **Code**, **Quiz**. The page is a single HTML file with embedded CSS and JavaScript — no build step, no external assets (the one exception: Mermaid loads from a pinned CDN URL with SRI, and only when the page contains a diagram).
 
 ## Invocation
 
@@ -126,7 +126,7 @@ Exactly **5** questions, medium difficulty — they require real understanding o
 
 - Clarity and flow in the spirit of Martin Kleppmann; classic style; smooth transitions between sections.
 - **Diagrams**: pick a small number of reusable families from the template. Use `.diagram` data-flow with `.d-node`/`.d-arrow`/`.d-data` for flows; `.ui-mock` for UI changes; `.fig`/`.example` with example data. Include example data. Use HTML lists for lists. **NEVER ASCII diagrams.**
-- **Mermaid** is allowed for genuinely complex diagrams (sequence/state/flowchart): write the diagram as a `<pre class="mermaid">` block with Mermaid source — the template loads Mermaid from CDN and renders it client-side. Prefer the HTML families for simple flows and UI mocks (they work offline and match the page style); Mermaid requires network when the page is viewed.
+- **Mermaid** is allowed for genuinely complex diagrams (sequence/state/flowchart): write the diagram as a `<pre class="mermaid">` block with Mermaid source — the template loads Mermaid from a pinned CDN URL (with SRI) only when a diagram is present, and renders it client-side. Prefer the HTML families for simple flows and UI mocks (they work offline and match the page style); Mermaid requires network when the page is viewed.
 - **Callouts**: `.callout` for key concepts/definitions and important edge cases.
 - **Code blocks**: always `<pre>` — the template CSS already sets `white-space: pre-wrap` globally (the gist's pre-wrap pitfall is handled); do not use custom styled divs for code.
 

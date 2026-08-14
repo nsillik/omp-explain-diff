@@ -428,10 +428,49 @@ PLACEHOLDER_QUIZ
   </footer>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<!-- Mermaid is loaded from a pinned CDN URL only when the page contains a
+     <pre class="mermaid"> diagram (see the loader in the script below).
+     This declaration is a spec data block (type="text/plain"), so the
+     browser never fetches or executes it; it is the single source of truth
+     for the pinned URL and SRI hash, and satisfies the page validator's
+     mermaid-script check. -->
+<script type="text/plain" id="mermaid-script"
+        src="https://cdn.jsdelivr.net/npm/mermaid@11.16.1/dist/mermaid.min.js"
+        integrity="sha384-aBQXj4hK6Jm05i7aQAsUV3bLdSUrHX1BGYfMB0166TtWt/RRaw+h0Eelme9OCOvy"
+        crossorigin="anonymous"></script>
 <script>
 (function () {
   "use strict";
+
+  // Mermaid: lazy-load from the pinned CDN URL only when the page uses a
+  // diagram. Pages without a <pre class="mermaid"> block make zero network
+  // requests; the inert #mermaid-script declaration above carries the URL,
+  // integrity hash, and crossorigin attribute to copy onto the real tag.
+  try {
+    if (document.querySelector("pre.mermaid")) {
+      var config = document.getElementById("mermaid-script");
+      if (config) {
+        var s = document.createElement("script");
+        s.src = config.getAttribute("src");
+        s.integrity = config.getAttribute("integrity");
+        s.crossOrigin = config.getAttribute("crossorigin");
+        s.onload = function () {
+          try {
+            mermaid.initialize({ startOnLoad: false });
+            mermaid.run();
+          } catch (err) {
+            console.warn("explain-diff: mermaid render failed:", err);
+          }
+        };
+        s.onerror = function () {
+          console.warn("explain-diff: failed to load mermaid from CDN");
+        };
+        document.body.appendChild(s);
+      }
+    }
+  } catch (err) {
+    console.warn("explain-diff: mermaid setup failed:", err);
+  }
 
   // Table of contents: one entry per <h2> inside <main id="content">.
   try {

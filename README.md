@@ -1,6 +1,6 @@
 # omp-explain-diff
 
-`/explain-diff-html` turns a code change — uncommitted working tree, branch, PR, commit range, or file — into a rich, interactive, self-contained HTML page with four sections: **Background**, **Intuition**, **Code**, and an interactive **Quiz**. The page is a single file: all CSS and JavaScript are embedded, it works offline, and it can be shared by opening the file in any browser.
+`/explain-diff-html` turns a code change — uncommitted working tree, branch, PR, commit range, or file — into a rich, interactive, self-contained HTML page with four sections: **Background**, **Intuition**, **Code**, and an interactive **Quiz**. The page is a single file: all CSS and JavaScript are embedded and it works offline — the one exception is Mermaid, which loads from a pinned, integrity-checked CDN URL but only when the page actually contains a diagram.
 
 Based on a gist by [@geoffreylitt](https://gist.github.com/geoffreylitt/a29df1b5f9865506e8952488eac3d524).
 
