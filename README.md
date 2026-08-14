@@ -20,7 +20,7 @@ Dropping the repo into `~/.omp/agent/extensions/` loads the command but **not** 
 
 | Command | Explains |
 |---|---|
-| `/explain-diff-html` | uncommitted working-tree changes |
+| `/explain-diff-html` | asks which change to explain: uncommitted, commit, PR, or commit vs base |
 | `/explain-diff-html <branch>` | branch vs default branch |
 | `/explain-diff-html #123` | GitHub PR #123 |
 | `/explain-diff-html a..b` | commit range |
@@ -31,6 +31,14 @@ Dropping the repo into `~/.omp/agent/extensions/` loads the command but **not** 
 - `~/.omp/explain-diffs/YYYY-MM-DD-explanation-<slug>.html`
 - Override the directory with the `EXPLAIN_DIFF_OUTPUT_DIR` environment variable.
 - Re-running for the same target on the same day overwrites the previous file.
+
+## Example
+
+A real generated page — the explanation of the PR that added interactive target selection:
+
+[2026-08-14-explanation-pr-1.html](https://htmlpreview.github.io/?https://github.com/nsillik/omp-explain-diff/blob/main/docs/2026-08-14-explanation-pr-1.html)
+
+GitHub serves raw files as `text/plain`, so a direct link would show source; the `htmlpreview.github.io` wrapper fetches the raw file and renders the full page — styles, auto-TOC, and interactive quiz included — in the browser. The file itself lives in [`docs/`](docs/2026-08-14-explanation-pr-1.html) and can be opened directly from a local checkout.
 
 ## How it works
 
