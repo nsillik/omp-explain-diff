@@ -47,7 +47,21 @@ GitHub serves raw files as `text/plain`, so a direct link would show source; the
 1. **Capture once.** Resolve the target to immutable Git objects, including nonignored untracked files and tracked deletions for working-tree targets. A temporary index leaves the real index unchanged. Statistics and binary sizes come from those same captured objects, not separate live working-tree or PR queries. GitHub PRs use resolved base/head revisions; without `gh`, a matching published PR merge ref must establish the base. If that metadata is unavailable, preparation fails explicitly rather than guessing a default-branch diff.
 2. **Prepare deterministic content.** Compute output identity and diffstat in code, then fill date, target, and diffstat in a captured template. The model never needs to read or reproduce the page's CSS/JavaScript.
 3. **Generate once.** A concise workflow asks the model to read the captured patch, inspect only relevant surrounding code, and write one JSON object: `title`, `subtitle`, `background`, `intuition`, `code`, and `quiz`. No repeated target acquisition or diffstat computation.
-4. **Validate before publishing.** `scripts/render.js` escapes plain-text title/subtitle, fills HTML content slots, validates the original document and browser quiz contract, then atomically publishes the result. Failed validation reports source locations without replacing an existing explanation.
+4. **Highlight and validate before publishing.** `scripts/render.js` escapes plain-text title/subtitle, fills HTML content slots, and validates the original document and browser quiz contract. It then applies Shiki highlighting to labeled code blocks, validates the highlighted HTML, and atomically publishes the result. Failed validation or highlighting leaves an existing explanation intact.
+
+### Syntax highlighting
+
+Code blocks use [Shiki](https://shiki.style/) at generation time, with GitHub Light/Dark themes following the viewer's system color preference. Highlighted markup and styles are embedded: no highlighter JavaScript, grammar downloads, or network access are needed to view code.
+
+Label blocks explicitly and HTML-escape their source:
+
+```html
+<pre><code class="language-typescript">const ready = count &lt; limit;</code></pre>
+```
+
+Standard Shiki language names and aliases such as `typescript`, `js`, `elixir`, `html`, `json`, `bash`, and `diff` are supported. Only direct `pre > code` blocks are highlighted. Unlabeled, unsupported, and `language-text` blocks stay plain; languages are never guessed. Inline code stays plain, and Mermaid blocks and their loader are unchanged. Code still wraps rather than overflowing the page.
+
+The renderer decodes source entities before highlighting and escapes the resulting code markup. Labeled, supported blocks must contain text only, not live HTML or pre-highlighted spans. Source validation runs first so HTML parser recovery cannot hide malformed input. The exported `renderExplanation` function is asynchronous; direct callers must await it.
 
 ### Generation time
 

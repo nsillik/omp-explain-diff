@@ -97,6 +97,20 @@
     overflow-x: auto;
   }
   pre code { background: none; padding: 0; }
+  pre code[data-shiki] span {
+    color: var(--shiki-light);
+    font-style: var(--shiki-light-font-style, normal);
+    font-weight: var(--shiki-light-font-weight, normal);
+    text-decoration: var(--shiki-light-text-decoration, none);
+  }
+  @media (prefers-color-scheme: dark) {
+    pre code[data-shiki] span {
+      color: var(--shiki-dark);
+      font-style: var(--shiki-dark-font-style, normal);
+      font-weight: var(--shiki-dark-font-weight, normal);
+      text-decoration: var(--shiki-dark-text-decoration, none);
+    }
+  }
 
   .wrap {
     max-width: 46rem;

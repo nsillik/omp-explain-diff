@@ -46,6 +46,8 @@ Draft these fields in one coherent pass. Title/subtitle are escaped by the rende
 
 Use the existing presentation classes: `.callout`/`.key`/`.warn`/`.callout-label`, `.diagram`/`.d-flow`/`.d-node`/`.d-arrow`/`.d-data`/`.d-cap`, `.ui-mock`/`.ui-bar`/`.ui-body`/`.ui-row`/`.ui-label`/`.ui-val`, `.fig`/`.fig-body`/`.fig-cap`, `.example`/`.example-label`. Normal paragraphs, headings, lists, tables, inline code, and `<pre><code>` are available. Never restyle the template or add unrelated scripts/assets. Prefer reusable HTML diagram families and real example data; no ASCII diagrams.
 
+Label every programming code block explicitly: `<pre><code class="language-typescript">...</code></pre>` (use the actual language, such as `javascript`, `elixir`, `html`, `json`, `bash`, or `diff`). Put only escaped source text inside the code element, never token spans or live HTML. The renderer adds Shiki highlighting with GitHub light/dark themes automatically; do not add highlighting scripts, styles, or token markup. Use `language-text` for intentionally plain blocks. Unlabeled and unsupported languages remain plain, without automatic detection. Inline `<code>` stays plain, even when labeled. Keep Mermaid diagrams in their separate format below.
+
 Optional complex diagrams use `<pre class="mermaid">` with HTML-escaped Mermaid source. The template loads pinned Mermaid only when such a block exists; viewing those diagrams requires network. Ordinary pages work offline. Do not add a Mermaid script yourself.
 
 ### Quiz contract
