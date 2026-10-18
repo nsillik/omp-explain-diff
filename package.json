@@ -5,5 +5,11 @@
   "type": "module",
   "private": true,
   "license": "MIT",
-  "omp": { "extensions": ["./src/index.ts"] }
+  "omp": {
+    "extensions": ["./src/index.ts"]
+  },
+  "dependencies": {
+    "htmlparser2": "^12.0.0",
+    "parse5": "^8.0.1"
+  }
 }

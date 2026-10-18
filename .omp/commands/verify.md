@@ -1,60 +1,36 @@
 ---
 name: verify
-description: Run the explain-diff-html plugin verification battery — build syntax check, sample fixture round-trip, positive and negative validator runs.
+description: Verify capture, generation preparation, rendering, and HTML validation with isolated Git fixtures and a real omp smoke run.
 ---
 
 # Verify plugin changes
 
-Run this before finishing any change to `src/`, `templates/`, `scripts/`, or `skills/`.
-All scratch output goes to `tmp/` (gitignored). Do not commit anything from `tmp/`.
+Run before finishing changes to `src/`, `templates/`, `scripts/`, or the generation skill. Do not stage or mutate the user's real Git index for verification. Scratch repositories/output belong in ignored `tmp/` or an OS temporary directory.
 
-## Steps
+## Automated checks
 
-1. **Build syntax check** — extension entry must compile under the bun target:
+```sh
+bun install --frozen-lockfile
+bun build --target=bun src/index.ts --outfile=/dev/null
+bun test
+bun scripts/validate.js docs/2026-08-14-explanation-pr-1.html
+```
 
-   ```sh
-   bun build --target=bun src/index.ts >/dev/null
-   ```
+The Bun target is required for `node:` imports. The tests create disposable repositories and exercise immutable diff capture, untracked/deleted/binary paths, real-index isolation, output identity, shell-quoted paths, browser-aligned quiz validation, source locations, and validate-before-publish behavior. Do not regenerate fixtures using an untracked scratch script.
 
-   Plain `bun build` defaults to the browser target and fails on `node:` imports;
-   `--target=bun` is required. Exit 0 means the syntax is valid.
+## Real generation smoke
 
-2. **Regenerate sample fixtures** — build a valid filled page from the committed
-   template, replacing every `PLACEHOLDER_*` marker. If `tmp/make-sample.mjs`
-   exists (scratch), run it:
-
-   ```sh
-   bun tmp/make-sample.mjs
-   ```
-
-   Otherwise generate `tmp/sample.html` and `tmp/mermaid.html` by replacing all
-   markers from `templates/explanation.html` with valid content (5 quiz
-   questions, each exactly one `data-correct="true"`; a `<details class="diffstat">`
-   with `+N`/`-N`/`N files` and per-file rows; a `main id="content"` with the four
-   sections). Use the marker structure documented in `skills/explain-diff-html/SKILL.md`.
-
-3. **Positive validator runs** — both must exit 0:
-
-   ```sh
-   bun scripts/validate.js tmp/sample.html
-   bun scripts/validate.js tmp/mermaid.html
-   ```
-
-   Expected: `OK <file>: 4/4 sections, 5 quiz questions, diffstat OK, all checks passed`.
-
-4. **Negative validator run** — a page missing the diffstat must fail with the
-   exact message. Create `tmp/no-diffstat.html` from `tmp/sample.html` by
-   removing the `<details class="diffstat">...</details>` block, then:
-
-   ```sh
-   bun scripts/validate.js tmp/no-diffstat.html
-   ```
-
-   Expected: exit 1 listing `missing <details class="diffstat"> in header`.
+1. Create a disposable Git repository with one committed source file, then make a small meaningful uncommitted change. Choose an output directory containing spaces.
+2. Run the actual `/explain-diff-html uncommitted` command in `omp`, explicitly loading this checkout if necessary. Record wall-clock duration separately from the command's reported preparation duration.
+3. Observe that the command captures metadata/patch once, the model writes one six-field content JSON, and `scripts/render.js` reports `OK` before final HTML is published. The model should not read the template or reacquire Git diff/stat data.
+4. Run `bun scripts/validate.js <absolute-html-path>` with a properly quoted path. Open the resulting page in a browser for programmatic checks: four TOC entries, five quiz questions, option selection reveals feedback, and a completed quiz shows the score.
+5. If Mermaid code changed, include a Mermaid block and verify real diagram rendering. Also verify core interactions remain available while its CDN request is blocked. No-diagram pages should not request the CDN.
+6. Remove only the scratch repository/output you created. Preserve the committed example page as a historical artifact; do not silently regenerate it.
 
 ## Acceptance
 
-- Step 1 exits 0.
-- Both positive runs exit 0 with `OK ... all checks passed`.
-- Negative run exits 1 and lists the missing-diffstat failure.
-- Report the exact exit codes and validator output lines as evidence.
+- Automated commands succeed; negative validator scenarios exit 1.
+- Untracked and deleted changes are represented without changing the user's index.
+- Different target/repository identities do not overwrite one another.
+- Invalid content leaves previous valid output unchanged.
+- The real command produces a valid interactive page, with observed preparation and end-to-end durations reported separately. Never claim a generation speedup from validator timings alone or compare runs using different models/change sizes as if controlled.

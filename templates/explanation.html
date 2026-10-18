@@ -428,8 +428,7 @@ PLACEHOLDER_QUIZ
   </footer>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
-<script>
+<script data-mermaid-src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js">
 (function () {
   "use strict";
 
@@ -508,6 +507,23 @@ PLACEHOLDER_QUIZ
     }
   } catch (err) {
     console.warn("explain-diff: quiz setup failed:", err);
+  }
+
+  // Diagrams are optional; core interactions never wait for their CDN.
+  if (document.querySelector("pre.mermaid")) {
+    var diagramScript = document.createElement("script");
+    diagramScript.src = document.currentScript.getAttribute("data-mermaid-src");
+    diagramScript.async = true;
+    diagramScript.onload = function () {
+      window.mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
+      window.mermaid.run({ querySelector: "pre.mermaid" }).catch(function (err) {
+        console.warn("explain-diff: diagram rendering failed:", err);
+      });
+    };
+    diagramScript.onerror = function () {
+      console.warn("explain-diff: diagrams unavailable; Mermaid could not load");
+    };
+    document.head.appendChild(diagramScript);
   }
 
   function slugify(text) {
