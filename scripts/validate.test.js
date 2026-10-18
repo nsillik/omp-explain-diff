@@ -111,7 +111,7 @@ test("code sample with < inside pre passes", () => {
 test("mermaid arrows inside pre pass with a loader", () => {
   expect(validate(full(
     `<pre class="mermaid">graph TD\n  A-->B</pre>` +
-      `<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>`,
+      `<script src="https://cdn.jsdelivr.net/npm/pele@1.6.0/dist/pele.global.js"></script>`,
   )).failures).toEqual([]);
 });
 
@@ -356,27 +356,27 @@ test("mermaid block without script fails", () => {
   expectRejected(full(`<pre class="mermaid">graph TD\n  A-->B</pre>`));
 });
 
-test("mermaid block with script passes", () => {
+test("mermaid block with Pele script passes", () => {
   const { failures } = validate(
     full(
       `<pre class="mermaid">graph TD\n  A-->B</pre>` +
-        `<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>`,
+        `<script src="https://cdn.jsdelivr.net/npm/pele@1.6.0/dist/pele.global.js"></script>`,
     ),
   );
   expect(failures).toEqual([]);
 });
 
-test("mermaid block with an explicit lazy loader passes", () => {
+test("mermaid block with an explicit Pele lazy loader passes", () => {
   expect(validate(full(
     `<pre class="mermaid">graph TD\n  A-->B</pre>` +
-      `<script data-mermaid-src="https://cdn.jsdelivr.net/npm/mermaid@11.12.0/dist/mermaid.min.js">const source = document.currentScript.dataset.mermaidSrc;</script>`,
+      `<script data-pele-src="https://cdn.jsdelivr.net/npm/pele@1.6.0/dist/pele.global.js">const source = document.currentScript.dataset.peleSrc;</script>`,
   )).failures).toEqual([]);
 });
 
-test("incidental mermaid script text is not a loader", () => {
+test("incidental Pele script text is not a loader", () => {
   expectRejected(full(
     `<pre class="mermaid">graph TD\n  A-->B</pre>` +
-      `<script>const source = "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js";</script>`,
+      `<script>const source = "https://cdn.jsdelivr.net/npm/pele@1.6.0/dist/pele.global.js";</script>`,
   ));
 });
 

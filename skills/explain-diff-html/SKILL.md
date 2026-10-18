@@ -48,7 +48,7 @@ Use the existing presentation classes: `.callout`/`.key`/`.warn`/`.callout-label
 
 Label every programming code block explicitly: `<pre><code class="language-typescript">...</code></pre>` (use the actual language, such as `javascript`, `elixir`, `html`, `json`, `bash`, or `diff`). Put only escaped source text inside the code element, never token spans or live HTML. The renderer adds Shiki highlighting with GitHub light/dark themes automatically; do not add highlighting scripts, styles, or token markup. Use `language-text` for intentionally plain blocks. Unlabeled and unsupported languages remain plain, without automatic detection. Inline `<code>` stays plain, even when labeled. Keep Mermaid diagrams in their separate format below.
 
-Optional complex diagrams use `<pre class="mermaid">` with HTML-escaped Mermaid source. The template loads pinned Mermaid only when such a block exists; viewing those diagrams requires network. Ordinary pages work offline. Do not add a Mermaid script yourself.
+Optional complex diagrams use `<pre class="mermaid">` with HTML-escaped Mermaid source. The template loads pinned Pele only when such a block exists and renders responsive SVG with page-matched light/dark colors; viewing those diagrams requires network. Keep colors themeable: avoid hard-coded diagram colors. Diagram links and external images are disabled. Ordinary pages work offline. Do not add a diagram script yourself.
 
 ### Quiz contract
 

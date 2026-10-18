@@ -263,16 +263,16 @@ export function validate(html) {
     (el) => el.tagName === "pre" && hasClass(el, "mermaid"),
   );
   if (mermaidBlocks.length > 0) {
-    const mermaidScript = findElements(
+    const peleScript = findElements(
       doc,
       (el) =>
         el.tagName === "script" &&
-        ((attr(el, "src") ?? "").includes("mermaid") ||
-          (attr(el, "data-mermaid-src") ?? "").includes("mermaid")),
+        ((attr(el, "src") ?? "").includes("pele") ||
+          (attr(el, "data-pele-src") ?? "").includes("pele")),
     );
-    if (mermaidScript.length === 0) {
+    if (peleScript.length === 0) {
       failures.push(
-        `${mermaidBlocks.length} mermaid block(s) without a mermaid script source`,
+        `${mermaidBlocks.length} mermaid block(s) without a Pele script source`,
       );
     }
   }

@@ -112,6 +112,21 @@
     }
   }
 
+  pre.mermaid {
+    --pele-bg: var(--code-bg);
+    --pele-fg: var(--fg);
+    --pele-muted: var(--muted);
+    --pele-line: var(--muted);
+    --pele-surface: var(--node-bg);
+    --pele-surface-alt: var(--accent-soft);
+    --pele-border: var(--border);
+    --pele-accent: var(--accent);
+    --pele-critical: var(--bad-border);
+    --pele-error: var(--bad-border);
+    --pele-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --pele-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
   .wrap {
     max-width: 46rem;
     margin: 0 auto;
@@ -442,7 +457,7 @@ PLACEHOLDER_QUIZ
   </footer>
 </div>
 
-<script data-mermaid-src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js">
+<script data-pele-src="https://cdn.jsdelivr.net/npm/pele@1.6.0/dist/pele.global.js">
 (function () {
   "use strict";
 
@@ -526,16 +541,21 @@ PLACEHOLDER_QUIZ
   // Diagrams are optional; core interactions never wait for their CDN.
   if (document.querySelector("pre.mermaid")) {
     var diagramScript = document.createElement("script");
-    diagramScript.src = document.currentScript.getAttribute("data-mermaid-src");
+    diagramScript.src = document.currentScript.getAttribute("data-pele-src");
     diagramScript.async = true;
     diagramScript.onload = function () {
-      window.mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
-      window.mermaid.run({ querySelector: "pre.mermaid" }).catch(function (err) {
-        console.warn("explain-diff: diagram rendering failed:", err);
+      document.querySelectorAll("pre.mermaid").forEach(function (element) {
+        window.pele.mount(element, element.textContent, {
+          links: false,
+          images: false,
+          onError: function (err) {
+            console.warn("explain-diff: diagram rendering failed:", err);
+          }
+        });
       });
     };
     diagramScript.onerror = function () {
-      console.warn("explain-diff: diagrams unavailable; Mermaid could not load");
+      console.warn("explain-diff: diagrams unavailable; Pele could not load");
     };
     document.head.appendChild(diagramScript);
   }

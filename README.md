@@ -1,6 +1,6 @@
 # omp-explain-diff
 
-`/explain-diff-html` turns a code change — uncommitted working tree, branch, PR, commit range, or file — into a rich, interactive, self-contained HTML page with four sections: **Background**, **Intuition**, **Code**, and an interactive **Quiz**. CSS and core JavaScript are embedded and work offline; optional Mermaid diagrams load a pinned CDN dependency.
+`/explain-diff-html` turns a code change — uncommitted working tree, branch, PR, commit range, or file — into a rich, interactive, self-contained HTML page with four sections: **Background**, **Intuition**, **Code**, and an interactive **Quiz**. CSS and core JavaScript are embedded and work offline; optional Mermaid diagrams use [Pele](https://pele.run/), loaded from a pinned CDN URL.
 
 Based on a gist by [@geoffreylitt](https://gist.github.com/geoffreylitt/a29df1b5f9865506e8952488eac3d524).
 
@@ -59,9 +59,23 @@ Label blocks explicitly and HTML-escape their source:
 <pre><code class="language-typescript">const ready = count &lt; limit;</code></pre>
 ```
 
-Standard Shiki language names and aliases such as `typescript`, `js`, `elixir`, `html`, `json`, `bash`, and `diff` are supported. Only direct `pre > code` blocks are highlighted. Unlabeled, unsupported, and `language-text` blocks stay plain; languages are never guessed. Inline code stays plain, and Mermaid blocks and their loader are unchanged. Code still wraps rather than overflowing the page.
+Standard Shiki language names and aliases such as `typescript`, `js`, `elixir`, `html`, `json`, `bash`, and `diff` are supported. Only direct `pre > code` blocks are highlighted. Unlabeled, unsupported, and `language-text` blocks stay plain; languages are never guessed. Inline code stays plain, and Mermaid source blocks are left for Pele to render. Code still wraps rather than overflowing the page.
 
 The renderer decodes source entities before highlighting and escapes the resulting code markup. Labeled, supported blocks must contain text only, not live HTML or pre-highlighted spans. Source validation runs first so HTML parser recovery cannot hide malformed input. The exported `renderExplanation` function is asynchronous; direct callers must await it.
+
+### Mermaid diagrams
+
+Write HTML-escaped Mermaid source in `<pre class="mermaid">`:
+
+```html
+<pre class="mermaid">flowchart LR
+  A[Captured patch] --&gt; B[Explanation]</pre>
+```
+
+The template loads **Pele 1.6.0** from jsDelivr only when a diagram exists, then uses [`mount()`](https://pele.run/api#mount) to render responsive SVG. Colors follow the page's light/dark CSS variables without re-rendering. Diagram links and external images are disabled. Do not add a diagram script to generated content.
+
+Viewing diagrams requires network access. If the CDN is unavailable, the Mermaid source remains readable; the table of contents and quiz still work. Invalid diagram source displays Pele's error without blocking other diagrams.
+
 
 ### Generation time
 
